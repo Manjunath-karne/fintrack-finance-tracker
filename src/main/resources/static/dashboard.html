@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinTrack — Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --ink: #0a0a0f;
+            --paper: #f5f3ee;
+            --gold: #c9a84c;
+            --sage: #7a9e7e;
+            --rust: #c0542a;
+            --muted: #8a8578;
+            --border: #e2ddd6;
+            --card: #ffffff;
+            --sidebar: #0a0a0f;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'DM Sans', sans-serif; background: var(--paper); display: flex; min-height: 100vh; }
+        .sidebar {
+            width: 240px; background: var(--sidebar);
+            display: flex; flex-direction: column;
+            padding: 32px 0; position: fixed;
+            height: 100vh; z-index: 100;
+        }
+        .sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 0 24px; margin-bottom: 40px; }
+        .sidebar-brand-icon { width: 36px; height: 36px; background: var(--gold); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+        .sidebar-brand-name { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; color: white; }
+        .sidebar-brand-name span { color: var(--gold); }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 24px; color: var(--muted); cursor: pointer; transition: all 0.2s; font-size: 14px; font-weight: 500; border-left: 3px solid transparent; }
+        .nav-item:hover { color: white; background: rgba(255,255,255,0.05); }
+        .nav-item.active { color: white; border-left-color: var(--gold); background: rgba(201,168,76,0.08); }
+        .nav-item { text-decoration: none; }
+        .nav-item .icon { font-size: 18px; width: 24px; text-align: center; }
+        .sidebar-footer { margin-top: auto; padding: 24px; border-top: 1px solid rgba(255,255,255,0.08); }
+        .user-info { display: flex; align-items: center; gap: 10px; }
+        .user-avatar { width: 36px; height: 36px; background: var(--gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: var(--ink); }
+        .user-name { font-size: 13px; font-weight: 500; color: white; }
+        .user-email { font-size: 11px; color: var(--muted); }
+        .logout-btn { margin-top: 12px; width: 100%; padding: 8px; background: rgba(192,84,42,0.15); color: var(--rust); border: 1px solid rgba(192,84,42,0.2); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; transition: all 0.2s; }
+        .logout-btn:hover { background: rgba(192,84,42,0.25); }
+        .main { margin-left: 240px; flex: 1; padding: 40px; }
+        .page { display: none; }
+        .page.active { display: block; }
+        .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+        .topbar h1 { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 700; color: var(--ink); letter-spacing: -0.5px; }
+        .topbar p { color: var(--muted); font-size: 14px; margin-top: 2px; }
+        .add-btn { padding: 10px 20px; background: var(--ink); color: white; border: none; border-radius: 10px; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
+        .add-btn:hover { background: var(--gold); color: var(--ink); transform: translateY(-1px); }
+        .cards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 32px; }
+        .card { background: var(--card); border-radius: 14px; padding: 24px; border: 1px solid var(--border); transition: transform 0.2s, box-shadow 0.2s; }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+        .card-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+        .card-value { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 700; color: var(--ink); letter-spacing: -1px; }
+        .card-value.income { color: var(--sage); }
+        .card-value.expense { color: var(--rust); }
+        .card-sub { font-size: 13px; color: var(--muted); margin-top: 6px; }
+        .card-icon { font-size: 28px; margin-bottom: 12px; }
+        .charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 32px; }
+        .chart-card { background: var(--card); border-radius: 14px; padding: 24px; border: 1px solid var(--border); }
+        .chart-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 20px; }
+        .chart-container { position: relative; height: 200px; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .section-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 600; color: var(--ink); }
+        .transaction-list { display: flex; flex-direction: column; gap: 10px; }
+        .transaction-item { background: var(--card); border-radius: 12px; padding: 16px 20px; border: 1px solid var(--border); display: flex; align-items: center; gap: 16px; transition: transform 0.2s; }
+        .transaction-item:hover { transform: translateX(4px); }
+        .t-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .t-icon.income { background: rgba(122,158,126,0.12); }
+        .t-icon.expense { background: rgba(192,84,42,0.1); }
+        .t-info { flex: 1; }
+        .t-title { font-size: 14px; font-weight: 500; color: var(--ink); }
+        .t-category { font-size: 12px; color: var(--muted); margin-top: 2px; }
+        .t-amount { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; }
+        .t-amount.income { color: var(--sage); }
+        .t-amount.expense { color: var(--rust); }
+        .t-date { font-size: 11px; color: var(--muted); text-align: right; margin-top: 2px; }
+        .delete-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 4px 8px; border-radius: 6px; transition: all 0.2s; }
+        .delete-btn:hover { background: rgba(192,84,42,0.1); color: var(--rust); }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(4px); }
+        .modal-overlay.open { display: flex; }
+        .modal { background: white; border-radius: 16px; padding: 32px; width: 100%; max-width: 440px; animation: fadeUp 0.3s ease; }
+        .modal-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; color: var(--ink); margin-bottom: 24px; }
+        .modal-field { margin-bottom: 16px; }
+        .modal-field label { display: block; font-size: 13px; font-weight: 500; color: var(--ink); margin-bottom: 6px; }
+        .modal-field input, .modal-field select { width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--ink); outline: none; transition: border-color 0.2s; }
+        .modal-field input:focus, .modal-field select:focus { border-color: var(--gold); }
+        .modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .modal-actions { display: flex; gap: 12px; margin-top: 24px; }
+        .modal-cancel { flex: 1; padding: 12px; background: var(--paper); border: 1.5px solid var(--border); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; }
+        .modal-submit { flex: 2; padding: 12px; background: var(--ink); color: white; border: none; border-radius: 8px; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .modal-submit:hover { background: var(--gold); color: var(--ink); }
+        .budget-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        .budget-card { background: var(--card); border-radius: 14px; padding: 24px; border: 1px solid var(--border); }
+        .budget-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .budget-category { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 600; color: var(--ink); }
+        .budget-amounts { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .budget-spent { font-size: 13px; color: var(--muted); }
+        .budget-limit { font-size: 13px; font-weight: 500; color: var(--ink); }
+        .progress-bar { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+        .progress-fill.safe { background: var(--sage); }
+        .progress-fill.warning { background: var(--gold); }
+        .progress-fill.danger { background: var(--rust); }
+        .budget-remaining { font-size: 12px; margin-top: 8px; color: var(--muted); }
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+        .empty-state .empty-icon { font-size: 48px; margin-bottom: 16px; }
+        .empty-state p { font-size: 15px; }
+        .score-card { background: var(--ink); color: white; border-radius: 14px; padding: 32px; text-align: center; margin-bottom: 24px; }
+        .score-number { font-family: 'Syne', sans-serif; font-size: 72px; font-weight: 700; line-height: 1; }
+        .score-number.excellent { color: var(--sage); }
+        .score-number.good { color: var(--gold); }
+        .score-number.average { color: #f0a500; }
+        .score-number.needs { color: var(--rust); }
+        .score-number.critical { color: #ff4444; }
+        .score-label { font-size: 18px; color: rgba(255,255,255,0.7); margin-top: 8px; }
+        .score-summary { font-size: 14px; color: rgba(255,255,255,0.5); margin-top: 12px; }
+        .insights-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+        .insight-card { background: var(--card); border-radius: 14px; padding: 20px; border: 1px solid var(--border); }
+        .insight-card h3 { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .insight-item { padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 14px; color: #444; line-height: 1.5; }
+        .insight-item:last-child { border-bottom: none; }
+        .savings-bar-wrap { margin-top: 16px; }
+        .savings-label { display: flex; justify-content: space-between; font-size: 13px; color: rgba(255,255,255,0.6); margin-bottom: 8px; }
+        .savings-bar { height: 10px; background: rgba(255,255,255,0.1); border-radius: 5px; overflow: hidden; }
+        .savings-fill { height: 100%; border-radius: 5px; background: var(--sage); transition: width 1s ease; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+        .alert-banner {
+            display: none;
+            margin-bottom: 20px;
+        }
+        .alert-item {
+            padding: 14px 18px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: fadeUp 0.3s ease;
+        }
+        .alert-item.warning {
+            background: rgba(201,168,76,0.12);
+            border: 1px solid rgba(201,168,76,0.3);
+            color: #7a6020;
+        }
+        .alert-item.danger {
+            background: rgba(192,84,42,0.1);
+            border: 1px solid rgba(192,84,42,0.25);
+            color: var(--rust);
+        }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="sidebar-brand">
+        <div class="sidebar-brand-icon">💰</div>
+        <div class="sidebar-brand-name">Fin<span>Track</span></div>
+    </div>
+    <div class="nav-item active" onclick="showPage('dashboard', this)"><span class="icon">📊</span> Dashboard</div>
+    <div class="nav-item" onclick="showPage('transactions', this)"><span class="icon">💳</span> Transactions</div>
+    <div class="nav-item" onclick="showPage('budget', this)"><span class="icon">🎯</span> Budget</div>
+   <div class="nav-item" onclick="showPage('insights', this)"><span class="icon">🤖</span> AI Insights</div>
+    <div class="nav-item" onclick="downloadReport()"><span class="icon">📊</span> Download Report</div>
+    <a href="/analytics.html" class="nav-item"><span class="icon">📈</span> Analytics</a>
+    <a href="/tips.html" class="nav-item"><span class="icon">💡</span> Tips</a>
+    <div class="sidebar-footer">
+        <div class="user-info">
+            <div class="user-avatar" id="userAvatar">M</div>
+            <div>
+                <div class="user-name" id="userName">Manju</div>
+                <div class="user-email" id="userEmail">manju@gmail.com</div>
+            </div>
+        </div>
+        <button class="logout-btn" onclick="logout()">Sign Out</button>
+    </div>
+</div>
+
+<div class="main">
+
+    <div class="page active" id="dashboardPage">
+        <div class="topbar">
+            <div><h1>Dashboard</h1><p id="greetingText">Good morning!</p></div>
+            <button class="add-btn" onclick="openModal()">+ Add Transaction</button>
+        </div>
+        <div class="cards-grid">
+            <div class="card"><div class="card-icon">💰</div><div class="card-label">Total Balance</div><div class="card-value" id="balanceValue">₹0</div><div class="card-sub">Income - Expenses</div></div>
+            <div class="card"><div class="card-icon">📈</div><div class="card-label">Total Income</div><div class="card-value income" id="incomeValue">₹0</div><div class="card-sub">All time earnings</div></div>
+            <div class="card"><div class="card-icon">📉</div><div class="card-label">Total Expenses</div><div class="card-value expense" id="expenseValue">₹0</div><div class="card-sub">All time spending</div></div>
+        </div>
+        <div class="charts-row">
+            <div class="chart-card"><div class="chart-title">Income vs Expenses (Last 6 months)</div><div class="chart-container"><canvas id="barChart"></canvas></div></div>
+            <div class="chart-card"><div class="chart-title">Spending by Category</div><div class="chart-container"><canvas id="doughnutChart"></canvas></div></div>
+        </div>
+        <div class="alert-banner" id="alertBanner"></div>
+        <div class="section-header"><div class="section-title">Recent Transactions</div></div>
+        <div class="transaction-list" id="recentTransactions"><div class="empty-state"><div class="empty-icon">📭</div><p>No transactions yet!</p></div></div>
+    </div>
+
+    <div class="page" id="transactionsPage">
+        <div class="topbar">
+            <div><h1>Transactions</h1><p>All your income and expenses</p></div>
+            <button class="add-btn" onclick="openModal()">+ Add Transaction</button>
+        </div>
+        <div class="transaction-list" id="allTransactions"><div class="empty-state"><div class="empty-icon">📭</div><p>No transactions yet.</p></div></div>
+    </div>
+
+    <div class="page" id="budgetPage">
+        <div class="topbar">
+            <div><h1>Budget Tracker</h1><p>Set and track your spending limits</p></div>
+            <button class="add-btn" onclick="openBudgetModal()">+ Set Budget</button>
+        </div>
+        <div class="budget-grid" id="budgetGrid"><div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🎯</div><p>No budgets set yet.</p></div></div>
+    </div>
+
+    <div class="page" id="insightsPage">
+        <div class="topbar">
+            <div><h1>AI Insights</h1><p>Smart analysis of your financial health</p></div>
+            <button class="add-btn" onclick="loadInsights()">🔄 Refresh Insights</button>
+        </div>
+        <div id="insightsContent">
+            <div class="empty-state"><div class="empty-icon">🤖</div><p>Click Refresh Insights to analyze your finances!</p></div>
+        </div>
+    </div>
+
+</div>
+
+<div class="modal-overlay" id="transactionModal">
+    <div class="modal">
+        <div class="modal-title">Add Transaction</div>
+        <div class="modal-row">
+            <div class="modal-field"><label>Type</label><select id="txType"><option value="INCOME">Income</option><option value="EXPENSE">Expense</option></select></div>
+            <div class="modal-field"><label>Amount (Rs)</label><input type="number" id="txAmount" placeholder="0.00"></div>
+        </div>
+        <div class="modal-field"><label>Title</label><input type="text" id="txTitle" placeholder="e.g. Salary, Groceries"></div>
+        <div class="modal-field"><label>Category</label><select id="txCategory"><option>Salary</option><option>Food</option><option>Transport</option><option>Shopping</option><option>Entertainment</option><option>Health</option><option>Utilities</option><option>Education</option><option>Investment</option><option>Other</option></select></div>
+        <div class="modal-field"><label>Description (optional)</label><input type="text" id="txDesc" placeholder="Add a note..."></div>
+        <div class="modal-actions">
+            <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+            <button class="modal-submit" onclick="addTransaction()">Add Transaction</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="budgetModal">
+    <div class="modal">
+        <div class="modal-title">Set Budget</div>
+        <div class="modal-field"><label>Category</label><select id="budgetCategory"><option>Food</option><option>Transport</option><option>Shopping</option><option>Entertainment</option><option>Health</option><option>Utilities</option><option>Education</option><option>Other</option></select></div>
+        <div class="modal-field"><label>Monthly Limit (Rs)</label><input type="number" id="budgetLimit" placeholder="e.g. 5000"></div>
+        <div class="modal-actions">
+            <button class="modal-cancel" onclick="closeBudgetModal()">Cancel</button>
+            <button class="modal-submit" onclick="addBudget()">Set Budget</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const credentials = localStorage.getItem('credentials');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (!credentials) window.location.href = '/';
+
+    document.getElementById('userName').textContent = user.fullName || 'User';
+    document.getElementById('userEmail').textContent = user.email || '';
+    document.getElementById('userAvatar').textContent = (user.fullName || 'U')[0].toUpperCase();
+
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    document.getElementById('greetingText').textContent = greeting + ', ' + (user.fullName || 'there') + '! Here is your financial overview.';
+
+    const authHeaders = { 'Authorization': 'Basic ' + credentials, 'Content-Type': 'application/json' };
+    let barChartInstance = null;
+    let doughnutChartInstance = null;
+
+    function showPage(page, el) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById(page + 'Page').classList.add('active');
+        if (el) el.classList.add('active');
+        if (page === 'dashboard') loadDashboard();
+        if (page === 'transactions') loadTransactions();
+        if (page === 'budget') loadBudgets();
+        if (page === 'insights') loadInsights();
+    }
+
+    function formatAmount(amount) {
+        return 'Rs ' + Number(amount).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+    }
+
+    function formatDate(dateStr) {
+        return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    function getCategoryIcon(category) {
+        const icons = { Salary: '💼', Food: '🍔', Transport: '🚗', Shopping: '🛍', Entertainment: '🎬', Health: '💊', Utilities: '💡', Education: '📚', Investment: '📈', Other: '💰' };
+        return icons[category] || '💰';
+    }
+
+    async function loadDashboard() {
+        try {
+            const res = await fetch('/api/transactions/summary', { headers: authHeaders });
+            const data = await res.json();
+            document.getElementById('balanceValue').textContent = formatAmount(data.balance);
+            document.getElementById('incomeValue').textContent = formatAmount(data.totalIncome);
+            document.getElementById('expenseValue').textContent = formatAmount(data.totalExpense);
+            loadRecentTransactions();
+            loadCharts();
+            loadRecentTransactions();
+            loadCharts();
+            loadAlerts();
+        } catch(e) { console.error(e); }
+    }
+
+    async function loadRecentTransactions() {
+        try {
+            const res = await fetch('/api/transactions', { headers: authHeaders });
+            const data = await res.json();
+            const container = document.getElementById('recentTransactions');
+            if (!data.length) { container.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>No transactions yet!</p></div>'; return; }
+            container.innerHTML = data.slice(0, 5).map(t => renderTransaction(t)).join('');
+        } catch(e) { console.error(e); }
+    }
+
+    async function loadTransactions() {
+        try {
+            const res = await fetch('/api/transactions', { headers: authHeaders });
+            const data = await res.json();
+            const container = document.getElementById('allTransactions');
+            if (!data.length) { container.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>No transactions yet.</p></div>'; return; }
+            container.innerHTML = data.map(t => renderTransaction(t)).join('');
+        } catch(e) { console.error(e); }
+    }
+
+    function renderTransaction(t) {
+        const isIncome = t.type === 'INCOME';
+        return '<div class="transaction-item">' +
+            '<div class="t-icon ' + (isIncome ? 'income' : 'expense') + '">' + getCategoryIcon(t.category) + '</div>' +
+            '<div class="t-info"><div class="t-title">' + t.title + '</div><div class="t-category">' + t.category + '</div></div>' +
+            '<div><div class="t-amount ' + (isIncome ? 'income' : 'expense') + '">' + (isIncome ? '+' : '-') + formatAmount(t.amount) + '</div>' +
+            '<div class="t-date">' + formatDate(t.date) + '</div></div>' +
+            '<button class="delete-btn" onclick="deleteTransaction(' + t.id + ')">🗑</button></div>';
+    }
+
+    async function loadCharts() {
+        try {
+            const now = new Date();
+            const months = [], incomes = [], expenses = [];
+            for (let i = 5; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                months.push(d.toLocaleString('default', { month: 'short' }));
+                const res = await fetch('/api/transactions/monthly?month=' + (d.getMonth()+1) + '&year=' + d.getFullYear(), { headers: authHeaders });
+                const txns = await res.json();
+                incomes.push(txns.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0));
+                expenses.push(txns.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0));
+            }
+            if (barChartInstance) barChartInstance.destroy();
+            barChartInstance = new Chart(document.getElementById('barChart'), {
+                type: 'bar',
+                data: { labels: months, datasets: [
+                    { label: 'Income', data: incomes, backgroundColor: 'rgba(122,158,126,0.7)', borderRadius: 6 },
+                    { label: 'Expenses', data: expenses, backgroundColor: 'rgba(192,84,42,0.7)', borderRadius: 6 }
+                ]},
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true } } }
+            });
+            const res2 = await fetch('/api/transactions', { headers: authHeaders });
+            const allTxns = await res2.json();
+            const catMap = {};
+            allTxns.filter(t => t.type === 'EXPENSE').forEach(t => { catMap[t.category] = (catMap[t.category] || 0) + t.amount; });
+            if (doughnutChartInstance) doughnutChartInstance.destroy();
+            if (Object.keys(catMap).length) {
+                doughnutChartInstance = new Chart(document.getElementById('doughnutChart'), {
+                    type: 'doughnut',
+                    data: { labels: Object.keys(catMap), datasets: [{ data: Object.values(catMap), backgroundColor: ['#c9a84c','#7a9e7e','#c0542a','#6b7db3','#a8823a','#4a7c59','#8b3a1a'] }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } }
+                });
+            }
+        } catch(e) { console.error(e); }
+    }
+
+    async function loadBudgets() {
+        try {
+            const now = new Date();
+            const res = await fetch('/api/budgets?month=' + (now.getMonth()+1) + '&year=' + now.getFullYear(), { headers: authHeaders });
+            const data = await res.json();
+            const container = document.getElementById('budgetGrid');
+            if (!data.length) { container.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🎯</div><p>No budgets set yet.</p></div>'; return; }
+            container.innerHTML = data.map(b => {
+                const pct = Math.min((b.spentAmount / b.limitAmount) * 100, 100);
+                const cls = pct < 70 ? 'safe' : pct < 90 ? 'warning' : 'danger';
+                return '<div class="budget-card"><div class="budget-header"><div class="budget-category">' + getCategoryIcon(b.category) + ' ' + b.category + '</div>' +
+                    '<button class="delete-btn" onclick="deleteBudget(' + b.id + ')">🗑</button></div>' +
+                    '<div class="budget-amounts"><span class="budget-spent">Spent: ' + formatAmount(b.spentAmount) + '</span><span class="budget-limit">Limit: ' + formatAmount(b.limitAmount) + '</span></div>' +
+                    '<div class="progress-bar"><div class="progress-fill ' + cls + '" style="width:' + pct + '%"></div></div>' +
+                    '<div class="budget-remaining">' + (pct >= 100 ? 'Over budget!' : formatAmount(b.remaining) + ' remaining') + '</div></div>';
+            }).join('');
+        } catch(e) { console.error(e); }
+    }
+
+    async function loadInsights() {
+        const container = document.getElementById('insightsContent');
+        container.innerHTML = '<div class="empty-state"><div class="empty-icon">⏳</div><p>Analyzing your finances...</p></div>';
+        try {
+            const res = await fetch('/api/insights', { headers: authHeaders });
+            const data = await res.json();
+            const scoreClass = data.score >= 80 ? 'excellent' : data.score >= 65 ? 'good' : data.score >= 45 ? 'average' : data.score >= 25 ? 'needs' : 'critical';
+            const savingsPct = Math.min(parseFloat(data.savingsRate), 100);
+            container.innerHTML =
+                '<div class="score-card">' +
+                    '<div class="score-number ' + scoreClass + '">' + data.score + '</div>' +
+                    '<div class="score-label">Financial Health Score — ' + data.scoreLabel + '</div>' +
+                    '<div class="score-summary">' + data.summary + '</div>' +
+                    '<div class="savings-bar-wrap">' +
+                        '<div class="savings-label"><span>Savings Rate</span><span>' + data.savingsRate + '%</span></div>' +
+                        '<div class="savings-bar"><div class="savings-fill" style="width:' + savingsPct + '%"></div></div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="insights-grid">' +
+                    '<div class="insight-card"><h3>📊 Analysis</h3>' +
+                        (data.insights || []).map(i => '<div class="insight-item">' + i + '</div>').join('') +
+                    '</div>' +
+                    '<div class="insight-card"><h3>💡 Smart Tips</h3>' +
+                        (data.tips || []).map(t => '<div class="insight-item">' + t + '</div>').join('') +
+                    '</div>' +
+                '</div>';
+        } catch(e) {
+            container.innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><p>Failed to load insights.</p></div>';
+        }
+    }
+
+    function openModal() { document.getElementById('transactionModal').classList.add('open'); }
+    function closeModal() { document.getElementById('transactionModal').classList.remove('open'); }
+    function openBudgetModal() { document.getElementById('budgetModal').classList.add('open'); }
+    function closeBudgetModal() { document.getElementById('budgetModal').classList.remove('open'); }
+
+    async function addTransaction() {
+        const body = { title: document.getElementById('txTitle').value, amount: document.getElementById('txAmount').value, type: document.getElementById('txType').value, category: document.getElementById('txCategory').value, description: document.getElementById('txDesc').value };
+        if (!body.title || !body.amount) { alert('Please fill in title and amount'); return; }
+        try {
+            const res = await fetch('/api/transactions', { method: 'POST', headers: authHeaders, body: JSON.stringify(body) });
+            if (res.ok) { closeModal(); document.getElementById('txTitle').value = ''; document.getElementById('txAmount').value = ''; loadDashboard(); loadTransactions(); }
+        } catch(e) { console.error(e); }
+    }
+
+    async function deleteTransaction(id) {
+        if (!confirm('Delete this transaction?')) return;
+        await fetch('/api/transactions/' + id, { method: 'DELETE', headers: authHeaders });
+        loadDashboard(); loadTransactions();
+    }
+
+    async function addBudget() {
+        const now = new Date();
+        const body = { category: document.getElementById('budgetCategory').value, limitAmount: document.getElementById('budgetLimit').value, month: String(now.getMonth() + 1), year: String(now.getFullYear()) };
+        if (!body.limitAmount) { alert('Please enter a limit amount'); return; }
+        try {
+            const res = await fetch('/api/budgets', { method: 'POST', headers: authHeaders, body: JSON.stringify(body) });
+            if (res.ok) { closeBudgetModal(); document.getElementById('budgetLimit').value = ''; loadBudgets(); }
+        } catch(e) { console.error(e); }
+    }
+
+    async function deleteBudget(id) {
+        if (!confirm('Delete this budget?')) return;
+        await fetch('/api/budgets/' + id, { method: 'DELETE', headers: authHeaders });
+        loadBudgets();
+    }
+    async function loadAlerts() {
+        try {
+            const res = await fetch('/api/budgets/alerts', { headers: authHeaders });
+            const alerts = await res.json();
+            const banner = document.getElementById('alertBanner');
+            if (alerts.length > 0) {
+                banner.style.display = 'block';
+                banner.innerHTML = alerts.map(a =>
+                    '<div class="alert-item ' + (a.isOver ? 'danger' : 'warning') + '">' +
+                    (a.isOver ? '🚨' : '⚠️') +
+                    '<strong>' + a.category + '</strong> — ' +
+                    (a.isOver ? 'Over budget! ' : '') +
+                    'Spent Rs ' + Math.round(a.spent) + ' of Rs ' + Math.round(a.limit) +
+                    ' (' + a.percentage + '%)' +
+                    '</div>'
+                ).join('');
+            } else {
+                banner.style.display = 'none';
+            }
+        } catch(e) { console.error(e); }
+    }
+
+    function downloadReport() {
+        const link = document.createElement('a');
+        link.href = '/api/reports/monthly-pdf';
+        link.setAttribute('download', 'FinTrack-Report.pdf');
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', '/api/reports/monthly-pdf', true);
+        xhr.setRequestHeader('Authorization', 'Basic ' + credentials);
+        xhr.responseType = 'blob';
+        xhr.onload = function() {
+            const url = window.URL.createObjectURL(xhr.response);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'FinTrack-Monthly-Report.pdf';
+            a.click();
+        };
+        xhr.send();
+    }
+
+    function logout() { localStorage.clear(); window.location.href = '/'; }
+
+    loadDashboard();
+</script>
+</body>
+</html> 

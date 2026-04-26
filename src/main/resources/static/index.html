@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinTrack — Smart Money</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ink: #0a0a0f;
+            --paper: #f5f3ee;
+            --gold: #c9a84c;
+            --gold-light: #e8d5a3;
+            --sage: #7a9e7e;
+            --rust: #c0542a;
+            --muted: #8a8578;
+            --card: #ffffff;
+            --border: #e2ddd6;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--paper);
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            overflow: hidden;
+        }
+        .left-panel {
+            background: var(--ink);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 48px;
+            overflow: hidden;
+        }
+        .left-panel::before {
+            content: '';
+            position: absolute;
+            top: -100px; right: -100px;
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(201,168,76,0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .left-panel::after {
+            content: '';
+            position: absolute;
+            bottom: -80px; left: -80px;
+            width: 300px; height: 300px;
+            background: radial-gradient(circle, rgba(122,158,126,0.12) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .brand {
+            display: flex; align-items: center; gap: 12px;
+            animation: fadeDown 0.8s ease both;
+        }
+        .brand-icon {
+            width: 42px; height: 42px;
+            background: var(--gold);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+        }
+        .brand-name {
+            font-family: 'Syne', sans-serif;
+            font-size: 22px; font-weight: 700;
+            color: white; letter-spacing: -0.5px;
+        }
+        .brand-name span { color: var(--gold); }
+        .hero-text { animation: fadeUp 0.8s ease 0.2s both; }
+        .hero-text h2 {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(36px, 4vw, 52px);
+            font-weight: 700; color: white;
+            line-height: 1.1; letter-spacing: -1.5px;
+            margin-bottom: 20px;
+        }
+        .hero-text h2 em {
+            color: var(--gold); font-style: italic;
+            font-family: 'DM Sans', sans-serif; font-weight: 300;
+        }
+        .hero-text p {
+            color: var(--muted); font-size: 16px;
+            line-height: 1.7; max-width: 340px; font-weight: 300;
+        }
+        .stats-row {
+            display: flex; gap: 32px;
+            animation: fadeUp 0.8s ease 0.4s both;
+        }
+        .stat { border-left: 2px solid var(--gold); padding-left: 16px; }
+        .stat-num {
+            font-family: 'Syne', sans-serif;
+            font-size: 28px; font-weight: 700;
+            color: white; letter-spacing: -1px;
+        }
+        .stat-label {
+            font-size: 12px; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        .float-card {
+            position: absolute;
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px; padding: 16px 20px;
+        }
+        .float-card:nth-of-type(1) { top: 22%; right: 40px; animation: float 6s ease-in-out infinite; }
+        .float-card:nth-of-type(2) { top: 45%; right: 80px; animation: float 6s ease-in-out 2s infinite; }
+        .float-card-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+        .float-card-value { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; color: white; margin-top: 4px; }
+        .float-card-sub { font-size: 12px; color: var(--sage); margin-top: 2px; }
+        .float-card-sub.neg { color: var(--rust); }
+        .right-panel {
+            display: flex; align-items: center; justify-content: center;
+            padding: 48px; position: relative;
+        }
+        .right-panel::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background:
+                radial-gradient(circle at 80% 20%, rgba(201,168,76,0.06) 0%, transparent 50%),
+                radial-gradient(circle at 20% 80%, rgba(122,158,126,0.06) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        .form-box {
+            width: 100%; max-width: 400px;
+            animation: fadeUp 0.8s ease 0.3s both;
+        }
+        .form-header { margin-bottom: 36px; }
+        .form-header h3 {
+            font-family: 'Syne', sans-serif;
+            font-size: 30px; font-weight: 700;
+            color: var(--ink); letter-spacing: -1px; margin-bottom: 8px;
+        }
+        .form-header p { color: var(--muted); font-size: 15px; font-weight: 300; }
+        .tab-switch {
+            display: inline-flex;
+            background: var(--border);
+            border-radius: 10px; padding: 4px; margin-bottom: 32px;
+        }
+        .tab-btn {
+            padding: 9px 24px; border: none;
+            background: transparent; border-radius: 8px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px; font-weight: 500;
+            color: var(--muted); cursor: pointer;
+            transition: all 0.25s ease;
+        }
+        .tab-btn.active {
+            background: white; color: var(--ink);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .field { margin-bottom: 18px; }
+        .field label {
+            display: block; font-size: 13px; font-weight: 500;
+            color: var(--ink); margin-bottom: 8px; letter-spacing: 0.2px;
+        }
+        .field input {
+            width: 100%; padding: 13px 16px;
+            border: 1.5px solid var(--border); border-radius: 10px;
+            font-family: 'DM Sans', sans-serif; font-size: 15px;
+            color: var(--ink); background: white; outline: none;
+            transition: all 0.2s ease;
+        }
+        .field input::placeholder { color: #bbb; }
+        .field input:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 3px rgba(201,168,76,0.12);
+        }
+        .submit-btn {
+            width: 100%; padding: 15px;
+            background: var(--ink); color: white;
+            border: none; border-radius: 10px;
+            font-family: 'Syne', sans-serif;
+            font-size: 15px; font-weight: 600;
+            cursor: pointer; letter-spacing: 0.3px;
+            transition: all 0.25s ease;
+            position: relative; overflow: hidden; margin-top: 8px;
+        }
+        .submit-btn::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: linear-gradient(135deg, var(--gold), #a8823a);
+            opacity: 0; transition: opacity 0.25s ease;
+        }
+        .submit-btn:hover::before { opacity: 1; }
+        .submit-btn span { position: relative; z-index: 1; }
+        .submit-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+        .submit-btn:active { transform: translateY(0); }
+        .message-box {
+            padding: 12px 16px; border-radius: 8px;
+            font-size: 14px; margin-top: 16px;
+            display: none; animation: fadeIn 0.3s ease;
+        }
+        .message-box.success {
+            background: rgba(122,158,126,0.12); color: #2d6a32;
+            border: 1px solid rgba(122,158,126,0.3); display: flex;
+            align-items: center; gap: 8px;
+        }
+        .message-box.error {
+            background: rgba(192,84,42,0.1); color: var(--rust);
+            border: 1px solid rgba(192,84,42,0.2); display: flex;
+            align-items: center; gap: 8px;
+        }
+        .form-panel { display: none; }
+        .form-panel.active { display: block; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeDown { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+        @media (max-width: 768px) {
+            body { grid-template-columns: 1fr; }
+            .left-panel { display: none; }
+            .right-panel { padding: 32px 24px; }
+        }
+    </style>
+</head>
+<body>
+<div class="left-panel">
+    <div class="brand">
+        <div class="brand-icon">💰</div>
+        <div class="brand-name">Fin<span>Track</span></div>
+    </div>
+    <div class="float-card">
+        <div class="float-card-label">Monthly Balance</div>
+        <div class="float-card-value">₹84,200</div>
+        <div class="float-card-sub">↑ 12% from last month</div>
+    </div>
+    <div class="float-card">
+        <div class="float-card-label">Total Expenses</div>
+        <div class="float-card-value">₹31,450</div>
+        <div class="float-card-sub neg">↑ 4% over budget</div>
+    </div>
+    <div class="hero-text">
+        <h2>Control your<br>money, <em>finally.</em></h2>
+        <p>Track every rupee, set smart budgets, and get AI-powered insights to reach your financial goals faster.</p>
+    </div>
+    <div class="stats-row">
+        <div class="stat"><div class="stat-num">₹2.4L</div><div class="stat-label">Avg. Saved</div></div>
+        <div class="stat"><div class="stat-num">98%</div><div class="stat-label">Accuracy</div></div>
+        <div class="stat"><div class="stat-num">24/7</div><div class="stat-label">Insights</div></div>
+    </div>
+</div>
+<div class="right-panel">
+    <div class="form-box">
+        <div class="form-header">
+            <h3>Welcome back</h3>
+            <p>Sign in to your account or create a new one</p>
+        </div>
+        <div class="tab-switch">
+            <button class="tab-btn active" onclick="switchTab('login')">Sign In</button>
+            <button class="tab-btn" onclick="switchTab('register')">Create Account</button>
+        </div>
+        <div class="form-panel active" id="loginPanel">
+            <div class="field"><label>Email Address</label><input type="email" id="loginEmail" placeholder="you@example.com"></div>
+            <div class="field"><label>Password</label><input type="password" id="loginPassword" placeholder="••••••••"></div>
+            <button class="submit-btn" onclick="login()"><span>Sign In →</span></button>
+            <div class="message-box" id="loginMessage"></div>
+        </div>
+        <div class="form-panel" id="registerPanel">
+            <div class="field"><label>Full Name</label><input type="text" id="regName" placeholder="Manju Kumar"></div>
+            <div class="field"><label>Email Address</label><input type="email" id="regEmail" placeholder="you@example.com"></div>
+            <div class="field"><label>Password</label><input type="password" id="regPassword" placeholder="Create a strong password"></div>
+            <button class="submit-btn" onclick="register()"><span>Create Account →</span></button>
+            <div class="message-box" id="registerMessage"></div>
+        </div>
+    </div>
+</div>
+<script>
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
+        if (tab === 'login') {
+            document.querySelectorAll('.tab-btn')[0].classList.add('active');
+            document.getElementById('loginPanel').classList.add('active');
+            document.querySelector('.form-header h3').textContent = 'Welcome back';
+            document.querySelector('.form-header p').textContent = 'Sign in to your account or create a new one';
+        } else {
+            document.querySelectorAll('.tab-btn')[1].classList.add('active');
+            document.getElementById('registerPanel').classList.add('active');
+            document.querySelector('.form-header h3').textContent = 'Get started';
+            document.querySelector('.form-header p').textContent = 'Create your free account in seconds';
+        }
+    }
+    async function register() {
+        const fullName = document.getElementById('regName').value;
+        const email = document.getElementById('regEmail').value;
+        const password = document.getElementById('regPassword').value;
+        const msg = document.getElementById('registerMessage');
+        if (!fullName || !email || !password) { msg.className = 'message-box error'; msg.innerHTML = '⚠ Please fill in all fields'; return; }
+        try {
+            const response = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fullName, email, password }) });
+            const data = await response.json();
+            if (response.ok) { msg.className = 'message-box success'; msg.innerHTML = '✓ Account created! Redirecting to login...'; setTimeout(() => switchTab('login'), 2000); }
+            else { msg.className = 'message-box error'; msg.innerHTML = '⚠ ' + (data.error || 'Registration failed'); }
+        } catch (e) { msg.className = 'message-box error'; msg.innerHTML = '⚠ Server error. Please try again.'; }
+    }
+    async function login() {
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+        const msg = document.getElementById('loginMessage');
+        if (!email || !password) { msg.className = 'message-box error'; msg.innerHTML = '⚠ Please fill in all fields'; return; }
+        try {
+            const credentials = btoa(email + ':' + password);
+            const response = await fetch('/api/auth/me?email=' + encodeURIComponent(email), { headers: { 'Authorization': 'Basic ' + credentials } });
+            if (response.ok) {
+                const data = await response.json();
+                localStorage.setItem('user', JSON.stringify(data));
+                localStorage.setItem('credentials', credentials);
+                msg.className = 'message-box success';
+                msg.innerHTML = '✓ Login successful! Loading dashboard...';
+                setTimeout(() => window.location.href = '/dashboard.html', 1000);
+            } else { msg.className = 'message-box error'; msg.innerHTML = '⚠ Invalid email or password'; }
+        } catch (e) { msg.className = 'message-box error'; msg.innerHTML = '⚠ Server error. Please try again.'; }
+    }
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+            const activePanel = document.querySelector('.form-panel.active').id;
+            activePanel === 'loginPanel' ? login() : register();
+        }
+    });
+</script>
+</body>
+</html>

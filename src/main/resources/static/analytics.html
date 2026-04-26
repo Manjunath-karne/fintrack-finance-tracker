@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinTrack — Analytics</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --ink: #0a0a0f;
+            --paper: #f5f3ee;
+            --gold: #c9a84c;
+            --sage: #7a9e7e;
+            --rust: #c0542a;
+            --muted: #8a8578;
+            --border: #e2ddd6;
+            --card: #ffffff;
+            --sidebar: #0a0a0f;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'DM Sans', sans-serif; background: var(--paper); display: flex; min-height: 100vh; }
+        .sidebar { width: 240px; background: var(--sidebar); display: flex; flex-direction: column; padding: 32px 0; position: fixed; height: 100vh; z-index: 100; }
+        .sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 0 24px; margin-bottom: 40px; }
+        .sidebar-brand-icon { width: 36px; height: 36px; background: var(--gold); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+        .sidebar-brand-name { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; color: white; }
+        .sidebar-brand-name span { color: var(--gold); }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 24px; color: var(--muted); cursor: pointer; transition: all 0.2s; font-size: 14px; font-weight: 500; border-left: 3px solid transparent; text-decoration: none; }
+        .nav-item:hover { color: white; background: rgba(255,255,255,0.05); }
+        .nav-item.active { color: white; border-left-color: var(--gold); background: rgba(201,168,76,0.08); }
+        .nav-item .icon { font-size: 18px; width: 24px; text-align: center; }
+        .sidebar-footer { margin-top: auto; padding: 24px; border-top: 1px solid rgba(255,255,255,0.08); }
+        .user-avatar { width: 36px; height: 36px; background: var(--gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: var(--ink); }
+        .user-name { font-size: 13px; font-weight: 500; color: white; }
+        .user-email { font-size: 11px; color: var(--muted); }
+        .logout-btn { margin-top: 12px; width: 100%; padding: 8px; background: rgba(192,84,42,0.15); color: var(--rust); border: 1px solid rgba(192,84,42,0.2); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; }
+        .main { margin-left: 240px; flex: 1; padding: 40px; }
+        .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+        .topbar h1 { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 700; color: var(--ink); letter-spacing: -0.5px; }
+        .topbar p { color: var(--muted); font-size: 14px; margin-top: 2px; }
+        .card { background: var(--card); border-radius: 14px; padding: 24px; border: 1px solid var(--border); }
+        .card-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 20px; }
+        .chart-container { position: relative; height: 250px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px; }
+        .stat-card { background: var(--card); border-radius: 14px; padding: 20px; border: 1px solid var(--border); }
+        .stat-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+        .stat-value { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 700; color: var(--ink); }
+        .stat-value.green { color: var(--sage); }
+        .stat-value.red { color: var(--rust); }
+        .stat-value.gold { color: var(--gold); }
+        .stat-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+        .month-selector { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+        .month-btn { padding: 6px 14px; border: 1.5px solid var(--border); border-radius: 20px; background: white; font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; transition: all 0.2s; }
+        .month-btn.active { background: var(--ink); color: white; border-color: var(--ink); }
+        .category-list { display: flex; flex-direction: column; gap: 12px; }
+        .category-row { display: flex; align-items: center; gap: 12px; }
+        .category-name { font-size: 13px; font-weight: 500; color: var(--ink); width: 100px; }
+        .category-bar-wrap { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+        .category-bar { height: 100%; border-radius: 4px; background: var(--rust); transition: width 0.8s ease; }
+        .category-amount { font-size: 13px; font-weight: 600; color: var(--ink); width: 80px; text-align: right; }
+        .trend-up { color: var(--sage); font-size: 12px; }
+        .trend-down { color: var(--rust); font-size: 12px; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="sidebar-brand">
+        <div class="sidebar-brand-icon">💰</div>
+        <div class="sidebar-brand-name">Fin<span>Track</span></div>
+    </div>
+    <a href="/dashboard.html" class="nav-item"><span class="icon">📊</span> Dashboard</a>
+    <a href="/dashboard.html" class="nav-item"><span class="icon">💳</span> Transactions</a>
+    <a href="/dashboard.html" class="nav-item"><span class="icon">🎯</span> Budget</a>
+    <a href="/dashboard.html" class="nav-item"><span class="icon">🤖</span> AI Insights</a>
+    <a href="/analytics.html" class="nav-item active"><span class="icon">📈</span> Analytics</a>
+    <a href="/tips.html" class="nav-item"><span class="icon">💡</span> Tips</a>
+    <div class="sidebar-footer">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <div class="user-avatar" id="userAvatar">M</div>
+            <div>
+                <div class="user-name" id="userName">User</div>
+                <div class="user-email" id="userEmail"></div>
+            </div>
+        </div>
+        <button class="logout-btn" onclick="logout()">Sign Out</button>
+    </div>
+</div>
+
+<div class="main">
+    <div class="topbar">
+        <div><h1>Analytics</h1><p>Deep dive into your financial trends</p></div>
+    </div>
+
+    <!-- STAT CARDS -->
+    <div class="grid-3">
+        <div class="stat-card"><div class="stat-label">Highest Income Month</div><div class="stat-value green" id="highIncomeMonth">-</div><div class="stat-sub" id="highIncomeAmt"></div></div>
+        <div class="stat-card"><div class="stat-label">Highest Expense Month</div><div class="stat-value red" id="highExpMonth">-</div><div class="stat-sub" id="highExpAmt"></div></div>
+        <div class="stat-card"><div class="stat-label">Average Monthly Saving</div><div class="stat-value gold" id="avgSaving">-</div><div class="stat-sub">Per month average</div></div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="grid-2">
+        <div class="card">
+            <div class="card-title">12-Month Income Trend</div>
+            <div class="chart-container"><canvas id="incomeChart"></canvas></div>
+        </div>
+        <div class="card">
+            <div class="card-title">12-Month Expense Trend</div>
+            <div class="chart-container"><canvas id="expenseChart"></canvas></div>
+        </div>
+    </div>
+
+    <div class="grid-2">
+        <div class="card">
+            <div class="card-title">Monthly Savings Rate</div>
+            <div class="chart-container"><canvas id="savingsChart"></canvas></div>
+        </div>
+        <div class="card">
+            <div class="card-title">Expense Distribution</div>
+            <div class="chart-container"><canvas id="pieChart"></canvas></div>
+        </div>
+    </div>
+
+    <!-- CATEGORY BREAKDOWN -->
+    <div class="card" style="margin-top:20px;">
+        <div class="card-title">Top Spending Categories</div>
+        <div class="category-list" id="categoryList">
+            <p style="color:var(--muted);font-size:14px;">Loading...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    const credentials = localStorage.getItem('credentials');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (!credentials) window.location.href = '/';
+
+    document.getElementById('userName').textContent = user.fullName || 'User';
+    document.getElementById('userEmail').textContent = user.email || '';
+    document.getElementById('userAvatar').textContent = (user.fullName || 'U')[0].toUpperCase();
+
+    const authHeaders = { 'Authorization': 'Basic ' + credentials, 'Content-Type': 'application/json' };
+
+    function formatAmt(n) { return 'Rs ' + Number(n).toLocaleString('en-IN', { maximumFractionDigits: 0 }); }
+
+    async function loadAnalytics() {
+        const now = new Date();
+        const months = [], incomes = [], expenses = [], savings = [];
+        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+        for (let i = 11; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            months.push(monthNames[d.getMonth()] + ' ' + String(d.getFullYear()).slice(2));
+            const res = await fetch('/api/transactions/monthly?month=' + (d.getMonth()+1) + '&year=' + d.getFullYear(), { headers: authHeaders });
+            const txns = await res.json();
+            const inc = txns.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0);
+            const exp = txns.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0);
+            incomes.push(inc);
+            expenses.push(exp);
+            savings.push(inc > 0 ? Math.round(((inc - exp) / inc) * 100) : 0);
+        }
+
+        // Stat cards
+        const maxIncome = Math.max(...incomes);
+        const maxIncIdx = incomes.indexOf(maxIncome);
+        const maxExp = Math.max(...expenses);
+        const maxExpIdx = expenses.indexOf(maxExp);
+        const avgSaving = incomes.reduce((s, inc, i) => s + (inc > 0 ? ((inc - expenses[i]) / inc) * 100 : 0), 0) / 12;
+
+        document.getElementById('highIncomeMonth').textContent = months[maxIncIdx] || '-';
+        document.getElementById('highIncomeAmt').textContent = formatAmt(maxIncome);
+        document.getElementById('highExpMonth').textContent = months[maxExpIdx] || '-';
+        document.getElementById('highExpAmt').textContent = formatAmt(maxExp);
+        document.getElementById('avgSaving').textContent = avgSaving.toFixed(1) + '%';
+
+        // Income Chart
+        new Chart(document.getElementById('incomeChart'), {
+            type: 'line',
+            data: { labels: months, datasets: [{ label: 'Income', data: incomes, borderColor: '#7a9e7e', backgroundColor: 'rgba(122,158,126,0.1)', borderWidth: 2, fill: true, tension: 0.4, pointBackgroundColor: '#7a9e7e' }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+        });
+
+        // Expense Chart
+        new Chart(document.getElementById('expenseChart'), {
+            type: 'line',
+            data: { labels: months, datasets: [{ label: 'Expenses', data: expenses, borderColor: '#c0542a', backgroundColor: 'rgba(192,84,42,0.1)', borderWidth: 2, fill: true, tension: 0.4, pointBackgroundColor: '#c0542a' }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+        });
+
+        // Savings Rate Chart
+        new Chart(document.getElementById('savingsChart'), {
+            type: 'bar',
+            data: { labels: months, datasets: [{ label: 'Savings Rate %', data: savings, backgroundColor: savings.map(s => s >= 20 ? 'rgba(122,158,126,0.7)' : s >= 0 ? 'rgba(201,168,76,0.7)' : 'rgba(192,84,42,0.7)'), borderRadius: 6 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100 } } }
+        });
+
+        // All transactions for pie and category
+        const res2 = await fetch('/api/transactions', { headers: authHeaders });
+        const allTxns = await res2.json();
+        const catMap = {};
+        allTxns.filter(t => t.type === 'EXPENSE').forEach(t => { catMap[t.category] = (catMap[t.category] || 0) + t.amount; });
+        const totalExp = Object.values(catMap).reduce((s, v) => s + v, 0);
+
+        // Pie Chart
+        if (Object.keys(catMap).length) {
+            new Chart(document.getElementById('pieChart'), {
+                type: 'pie',
+                data: { labels: Object.keys(catMap), datasets: [{ data: Object.values(catMap), backgroundColor: ['#c9a84c','#7a9e7e','#c0542a','#6b7db3','#a8823a','#4a7c59','#8b3a1a','#5a6e8c'] }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: { size: 11 } } } } }
+            });
+        }
+
+        // Category breakdown
+        const sorted = Object.entries(catMap).sort((a, b) => b[1] - a[1]);
+        const container = document.getElementById('categoryList');
+        if (sorted.length === 0) {
+            container.innerHTML = '<p style="color:var(--muted);font-size:14px;">No expense data yet.</p>';
+        } else {
+            container.innerHTML = sorted.map(([cat, amt]) => {
+                const pct = totalExp > 0 ? (amt / totalExp) * 100 : 0;
+                return '<div class="category-row">' +
+                    '<div class="category-name">' + cat + '</div>' +
+                    '<div class="category-bar-wrap"><div class="category-bar" style="width:' + pct + '%;"></div></div>' +
+                    '<div class="category-amount">' + formatAmt(amt) + '</div>' +
+                    '<div style="font-size:12px;color:var(--muted);width:40px;text-align:right;">' + pct.toFixed(0) + '%</div>' +
+                '</div>';
+            }).join('');
+        }
+    }
+
+    function logout() { localStorage.clear(); window.location.href = '/'; }
+    loadAnalytics();
+</script>
+</body>
+</html>

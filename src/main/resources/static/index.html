@@ -302,12 +302,16 @@
         const msg = document.getElementById('loginMessage');
         if (!email || !password) { msg.className = 'message-box error'; msg.innerHTML = '⚠ Please fill in all fields'; return; }
         try {
-            const credentials = btoa(email + ':' + password);
-            const response = await fetch('/api/auth/me?email=' + encodeURIComponent(email), { headers: { 'Authorization': 'Basic ' + credentials } });
+            const credentials = btoa(unescape(encodeURIComponent(email + ':' + password)));
+            const response = await fetch('/api/auth/me?email=' + encodeURIComponent(email), {
+                headers: { 'Authorization': 'Basic ' + credentials }
+            });
             if (response.ok) {
                 const data = await response.json();
                 localStorage.setItem('user', JSON.stringify(data));
                 localStorage.setItem('credentials', credentials);
+                localStorage.setItem('email', email);
+                localStorage.setItem('password', password);
                 msg.className = 'message-box success';
                 msg.innerHTML = '✓ Login successful! Loading dashboard...';
                 setTimeout(() => window.location.href = '/dashboard.html', 1000);

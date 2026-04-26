@@ -54,7 +54,12 @@ public class SecurityConfig {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
+                .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/register").permitAll()
+                .requestMatchers("/", "/index.html", "/landing.html", "/dashboard.html", "/analytics.html", "/tips.html").permitAll()
+                .requestMatchers("/*.html", "/*.css", "/*.js").permitAll()
+                .anyRequest().authenticated()
+            )
                 .requestMatchers("/", "/index.html", "/dashboard.html", "/landing.html", "/analytics.html", "/tips.html", "/**.html", "/**.css", "/**.js").permitAll()
                 .anyRequest().authenticated()
             )

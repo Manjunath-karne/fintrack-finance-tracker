@@ -6,7 +6,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -54,16 +53,19 @@ public class SecurityConfig {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
-                .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/register").permitAll()
-                .requestMatchers("/", "/index.html", "/landing.html", "/dashboard.html", "/analytics.html", "/tips.html").permitAll()
-                .requestMatchers("/*.html", "/*.css", "/*.js").permitAll()
+                .requestMatchers(
+                    "/",
+                    "/index.html",
+                    "/landing.html",
+                    "/dashboard.html",
+                    "/analytics.html",
+                    "/tips.html",
+                    "/api/auth/**"
+                ).permitAll()
                 .anyRequest().authenticated()
             )
-                .requestMatchers("/", "/index.html", "/dashboard.html", "/landing.html", "/analytics.html", "/tips.html", "/**.html", "/**.css", "/**.js").permitAll()
-                .anyRequest().authenticated()
-            )
-            .httpBasic(Customizer.withDefaults());
+            .httpBasic(AbstractHttpConfigurer::disable)
+            .formLogin(AbstractHttpConfigurer::disable);
         return http.build();
     }
 }
